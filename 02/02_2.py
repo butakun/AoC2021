@@ -16,14 +16,12 @@ def main(filename):
 
     commands = np.array([command_delta(*command) for command in commands])
 
-    x, y, aim = 0, 0, 0
-    for command in commands:
-        x += command[0]
-        y += command[0] * aim
-        aim += command[1]
-        print(x, y, aim)
-
-    print(x * y)
+    xya = np.zeros((commands.shape[0], 3), np.int32)
+    xya[:, 0] = commands[:, 0].cumsum()
+    xya[:, 2] = commands[:, 1].cumsum()
+    xya[:, 1] = (commands[:, 0] * xya[:, 2]).cumsum()
+    print(xya[-1, :])
+    print(xya[-1, 0] * xya[-1, 1])
 
 
 if __name__ == "__main__":
