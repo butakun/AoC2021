@@ -7,50 +7,40 @@ def main(filename):
         report = [line.strip() for line in f]
 
     report = np.array([[int(i) for i in l] for l in report])
-    np.save(open("report.npy", "wb"), report)
-
-    print(report)
+    #np.save(open("report.npy", "wb"), report)
 
     N, M = report.shape
     o2 = report
     co2 = report
     o2_final, co2_final = None, None
+
     for j in range(M):
         ones = o2[:, j].sum()
         zeros = o2.shape[0] - ones
         most_common = 1 if ones >= zeros else 0
-        least_common = 1 if ones < zeros else 0
-        print(j, ones, zeros, most_common, least_common)
         o2 = o2[o2[:, j] == most_common]
-        print(o2)
-        if o2_final is None and o2.shape[0] == 1:
-            o2_final = o2[0]
+        if o2.shape[0] == 1:
             break
 
-    print(o2_final)
+    o2 = o2[0]
+    o2 = "".join([str(i) for i in o2.tolist()])
+    o2 = int(o2, 2)
+    print(f"O2 = {o2}")
 
     for j in range(M):
         ones = co2[:, j].sum()
         zeros = co2.shape[0] - ones
-        most_common = 1 if ones >= zeros else 0
         least_common = 1 if ones < zeros else 0
-        print(j, ones, zeros, most_common, least_common)
         co2 = co2[co2[:, j] == least_common]
-        print(co2)
-        if co2_final is None and co2.shape[0] == 1:
-            co2_final = co2[0]
+        if co2.shape[0] == 1:
             break
 
-    print(co2_final)
-    print("final ", o2_final, co2_final)
+    co2 = co2[0]
+    co2 = "".join([str(i) for i in co2.tolist()])
+    co2 = int(co2, 2)
+    print(f"CO2 = {co2}")
 
-    o2_final = "".join(map(str, o2_final.tolist()))
-    co2_final = "".join(map(str, co2_final.tolist()))
-    print(o2_final, co2_final)
-
-    o2_final = int(o2_final, 2)
-    co2_final = int(co2_final, 2)
-    print(o2_final, co2_final, o2_final * co2_final)
+    print(f"O2 * CO2 = {o2 * co2}")
 
 
 if __name__ == "__main__":
