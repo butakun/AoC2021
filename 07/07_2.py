@@ -10,26 +10,16 @@ def main(filename):
 
     xmin, xmax = crabs.min(), crabs.max()
 
-    fuels = np.zeros((xmax - xmin + 1, 2))
-    x_fuel_min = None
-    fuel_min = None
-    for x in range(xmin, xmax + 1):
-        dists = np.abs(crabs - x)
-        for i, d in enumerate(dists):
-                dists[i] = np.arange(1, d+1).sum()
-        fuel = dists.sum()
-        print(x, fuel)
+    targets = np.arange(xmin, xmax+1, dtype=np.int32)
 
-        if x_fuel_min is None:
-            x_fuel_min = x
-            fuel_min = fuel
-        else:
-            if fuel < fuel_min: 
-                x_fuel_min = x
-                fuel_min = fuel
+    dists = np.abs((crabs - targets[np.newaxis, :].T))
+    print(dists)
+    fuels = dists * (dists + 1) / 2
 
-    print(x_fuel_min, fuel_min)
+    imin = np.argmin(fuels)
+
+    print(targets[imin], fuels[imin])
 
 
 if __name__ == "__main__":
-    main("input.txt")
+    main("input_debug.txt")
