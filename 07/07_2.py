@@ -9,17 +9,12 @@ def main(filename):
     print(crabs)
 
     xmin, xmax = crabs.min(), crabs.max()
-
-    targets = np.arange(xmin, xmax+1, dtype=np.int32)
-
+    targets = np.arange(xmin, xmax+1)
     dists = np.abs((crabs - targets[np.newaxis, :].T))
-    print(dists)
-    fuels = dists * (dists + 1) / 2
-
+    fuels = (dists * (dists + 1) // 2).sum(axis=1)
     imin = np.argmin(fuels)
-
     print(targets[imin], fuels[imin])
 
 
 if __name__ == "__main__":
-    main("input_debug.txt")
+    main("input.txt")
