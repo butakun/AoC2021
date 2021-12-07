@@ -7,12 +7,10 @@ def main(filename):
         report = [line.strip() for line in f]
 
     report = np.array([[int(i) for i in l] for l in report])
-    #np.save(open("report.npy", "wb"), report)
 
     N, M = report.shape
     o2 = report
     co2 = report
-    o2_final, co2_final = None, None
 
     for j in range(M):
         ones = o2[:, j].sum()
