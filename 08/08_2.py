@@ -1,10 +1,6 @@
-import numpy as np
-import itertools
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig(level=logging.WARN)
-
 
 # 0123456
 # abcdefg
