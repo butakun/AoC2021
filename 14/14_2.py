@@ -2,83 +2,66 @@ import numpy as np
 from functools import reduce
 
 
-class Pairs:
-    def __init__(self):
-        self.first = None
-        self.pairs = {}
-
-
-def step(pairs, first_pair, rules):
-    first_pair_new = None
-    pairs_new = {}
-
-    pair = first_pair
-    next_pair, next_pair_index = pairs[pair][0]
-    first_pair_new = None
-    while pair != None:
-
-        element = rules[pair]
-        pair_new_1 = pair[0] + element
-        pair_new_2 = element + pair[1]
-
-        if first_pair_new is None:
-            first_pair_new = pair_new_1
-
-        if pair_new_2 in pairs_new:
-            pair_new_2_index = len(pairs_new[pair_new_2])
-        else:
-            pair_new_2_index = 0
-
-        if pair_new_1 in pairs_new:
-            pairs_new[pair_new_1].append((pair_new_2, pair_new_2_index))
-        else:
-            if pair_new_1 == pair_new_2:
-                pairs_new[pair_new_1] = [(pair_new_2, 1)]
-            else:
-                pairs_new[pair_new_1] = [(pair_new_2, pair_new_2_index)]
-
-        if next_pair is None:
-            next_pair_new = None
-            next_pair_new_index = 0
-        else:
-            c2 = rules[next_pair]
-            next_pair_new = pair[1] + c2
-            if next_pair_new in pairs_new:
-                next_pair_new_index = len(pairs_new[next_pair_new])
-            else:
-                next_pair_new_index = 0
-
-        #print(f"{pair} -> {next_pair},{next_pair_index} => {pair_new_1} x {pair_new_2} => {next_pair_new},{next_pair_new_index}")
-
-        if pair_new_2 in pairs_new:
-            pairs_new[pair_new_2].append((next_pair_new, next_pair_new_index))
-        else:
-            if pair_new_2 == next_pair_new:
-                pairs_new[pair_new_2] = [(next_pair_new, 1)]
-            else:
-                pairs_new[pair_new_2] = [(next_pair_new, next_pair_new_index)]
-
-        pair = next_pair
-        if pair is not None:
-            next_pair, next_pair_index = pairs[next_pair][next_pair_index]
-
-    return pairs_new, first_pair_new
-
-
-def frequency(pairs, first_pair):
+def frequency(frequencies, first_pair, last_pair):
     counts = {}
-    pair = first_pair
-    pair_index = 0
-    counts[pair[0]] = 1
-    counts[pair[1]] = 0
-    while pair is not None:
-        if pair[1] in counts:
-            counts[pair[1]] += 1
+    none_zero_indices = np.where(frequencies > 0)[0]
+    for i in none_zero_indices:
+        count = frequencies[i]
+        pair = pair_from_index(i)
+        c1 = pair[0]
+        if c1 not in counts:
+            counts[c1] = count
         else:
-            counts[pair[1]] = 1
-        pair, pair_index = pairs[pair][pair_index]
+            counts[c1] += count
+
+    last_char = last_pair[1]
+    if last_char not in counts:
+        counts[last_char] = 1
+    else:
+        counts[last_char] = counts[last_char] + 1
 
     return counts
+
+
+def index_from_pair(pair):
+    i1 = ord(pair[0]) - 65
+    i2 = ord(pair[1]) - 65
+    return i1 * 26 + i2
+
+
+def pair_from_index(index):
+    i1 = index // 26
+    i2 = index % 26
+    return chr(i1 + 65) + chr(i2 + 65)
+
+
+def dump_pairs(frequencies, first_pair, last_pair):
+    none_zero_indices = np.where(frequencies > 0)[0]
+    print(none_zero_indices)
+    for i in none_zero_indices:
+        pair = pair_from_index(i)
+        count = frequencies[i]
+        print(f"{pair}: {count}")
+    print(f"  first = {first_pair}, last = {last_pair}")
+
+
+def step(frequencies, frequencies_next, first_pair, last_pair,  rules):
+    element = rules[first_pair]
+    first_pair_next = first_pair[0] + element
+    element = rules[last_pair]
+    last_pair_next = element + last_pair[1]
+
+    for pair, element in rules.items():
+        index = index_from_pair(pair)
+        count = frequencies[index]
+        pair_new_1 = pair[0] + element
+        pair_new_2 = element + pair[1]
+        index_new_1 = index_from_pair(pair_new_1)
+        index_new_2 = index_from_pair(pair_new_2)
+        frequencies_next[index_new_1] += count
+        frequencies_next[index_new_2] += count
+
+    return first_pair_next, last_pair_next
 
 
 def main(filename):
@@ -92,38 +75,41 @@ def main(filename):
 
     print(template)
     print(rules)
+    N = 26 * 26
 
-    first_pair = None
-    pairs = {}
-    ps = [template[i] + template[i + 1] for i in range(len(template) - 1)]
-    print(ps)
+    frequencies = np.zeros(N, dtype=np.uint64)
 
-    first_pair = ps[0]
-    num_ps = len(ps)
-    for i, pair in enumerate(ps):
-        next_pair = None
-        if i < num_ps - 1:
-            next_pair = ps[i + 1]
-            next_pairs = pairs.get(next_pair, [])
-            next_pair_index = len(next_pairs)
+    first_pair, last_pair = None, None
+    for i in range(len(template) - 1):
+        pair = template[i:i+2]
+        pair_index = index_from_pair(pair)
+        frequencies[pair_index] += 1
+        if first_pair is None:
+            first_pair = pair
+        last_pair = pair
 
-        if pair in pairs:
-            pairs[pair].append((next_pair, next_pair_index))
-        else:
-            pairs[pair] = [(next_pair, 0)]
+    dump_pairs(frequencies, first_pair, last_pair)
 
-    print(pairs, first_pair)
+    frequencies_next = np.zeros_like(frequencies, dtype=np.uint64)
 
-    for i in range(10):
-        pairs, first_pair = step(pairs, first_pair, rules)
-        print(i)
-        print(pairs, first_pair)
+    for i in range(40):
+        first_pair_next, last_pair_next = step(frequencies, frequencies_next, first_pair, last_pair,  rules)
+        print("step ", i)
+        dump_pairs(frequencies_next, first_pair_next, last_pair_next)
 
-    freq = frequency(pairs, first_pair)
+        tmp = frequencies
+        frequencies = frequencies_next
+        frequencies_next = tmp
+        frequencies_next[:] = 0
+        first_pair, last_pair = first_pair_next, last_pair_next
+
+        print(frequency(frequencies, first_pair, last_pair))
+
+    freq = frequency(frequencies, first_pair, last_pair)
     print(freq)
 
-    freqs = np.array([v for k, v in freq.items()])
+    freqs = np.array([v for k, v in freq.items()], dtype=np.uint64)
     print(freqs.max(), freqs.min(), freqs.max() - freqs.min())
 
 if __name__ == "__main__":
-    main("input_debug.txt")
+    main("input.txt")
