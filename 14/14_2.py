@@ -1,5 +1,5 @@
 import numpy as np
-from functools import reduce
+import time
 
 
 def frequency(frequencies, first_pair, last_pair):
@@ -77,6 +77,7 @@ def main(filename):
     print(rules)
     N = 26 * 26
 
+    t0 = time.time_ns()
     frequencies = np.zeros(N, dtype=np.uint64)
 
     first_pair, last_pair = None, None
@@ -94,22 +95,25 @@ def main(filename):
 
     for i in range(40):
         first_pair_next, last_pair_next = step(frequencies, frequencies_next, first_pair, last_pair,  rules)
-        print("step ", i)
-        dump_pairs(frequencies_next, first_pair_next, last_pair_next)
+        #print("step ", i)
+        #dump_pairs(frequencies_next, first_pair_next, last_pair_next)
 
-        tmp = frequencies
-        frequencies = frequencies_next
-        frequencies_next = tmp
+        frequencies[:] = frequencies_next[:]
         frequencies_next[:] = 0
         first_pair, last_pair = first_pair_next, last_pair_next
 
-        print(frequency(frequencies, first_pair, last_pair))
+        #print(frequency(frequencies, first_pair, last_pair))
 
     freq = frequency(frequencies, first_pair, last_pair)
-    print(freq)
+    #print(freq)
 
     freqs = np.array([v for k, v in freq.items()], dtype=np.uint64)
+
+    t1 = time.time_ns()
+
     print(freqs.max(), freqs.min(), freqs.max() - freqs.min())
+    print(t1 - t0, " nanosec")
+
 
 if __name__ == "__main__":
     main("input.txt")
