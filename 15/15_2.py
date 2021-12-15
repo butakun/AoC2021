@@ -1,57 +1,23 @@
 import numpy as np
+import heapq
 
 
-def dijkstra(grid, v1):
-    dist = np.zeros((grid.shape[0], grid.shape[1]), dtype=np.int32)
-    visited = np.zeros_like(grid, dtype=bool)
-    prev = np.zeros((grid.shape[0], grid.shape[1], 2), dtype=np.int32)
+class PrioritizedItem:
+    def __init__(self, node, value):
+        self.node = node
+        self.value = value
 
-    inf = np.iinfo(np.int32).max
-    dist[:, :] = inf
-    visited[:, :] = False
-    prev[:, :] = (0, 0)
+    def __lt__(self, other):
+        return self.value < other.value
 
-    dist[v1[0], v1[1]] = 0
+    def __le__(self, other):
+        return self.value <= other.value
 
-    idim, jdim = grid.shape
-    Q = [(i, j) for i in range(idim) for j in range(jdim)]
-    print(Q)
+    def __gt__(self, other):
+        return self.value > other.value
 
-    while Q:
-        u = Q[0]
-        min_dist = dist[u[0], u[1]]
-        for i, j in Q:
-            if dist[i, j] < min_dist:
-                min_dist = dist[i, j]
-                u = (i, j)
-        Q.remove(u)
-        print(u, min_dist)
-
-        if u[0] == idim - 1 and u[1] == jdim - 1:
-            break
-
-        nei = []
-        if u[0] > 0:
-            nei.append((u[0] - 1, u[1]))
-        if u[0] < idim - 1:
-            nei.append((u[0] + 1, u[1]))
-        if u[1] > 0:
-            nei.append((u[0], u[1] - 1))
-        if u[1] < jdim - 1:
-            nei.append((u[0], u[1] + 1))
-
-        for v in nei:
-            if visited[v[0], v[1]]:
-                continue
-
-            alt = dist[u[0], u[1]] + grid[v[0], v[1]]
-            if alt < dist[v[0], v[1]]:
-                dist[v[0], v[1]] = alt
-                prev[v[0], v[1]] = u
-
-            visited[v[0], v[1]] = True
-
-    print(u, dist[u[0], u[1]])
+    def __ge__(self, other):
+        return self.value >= other.value
 
 
 def neighbors(grid, u):
@@ -68,40 +34,36 @@ def neighbors(grid, u):
     return nei
 
 
-def funcH(grid, v):
+def heuristic_func(grid, v):
     idim, jdim = grid.shape
     di = idim - 1 - v[0]
     dj = jdim - 1 - v[1]
+    #return min(di, dj)
     return di + dj
 
 
 def astar(grid, v1):
+    inf = np.iinfo(np.int64).max
     idim, jdim = grid.shape
 
-    open_set = [v1]
+    open_set = [PrioritizedItem(v1, inf)]
+
     prev = np.zeros((grid.shape[0], grid.shape[1], 2), dtype=np.int64)
     F = np.zeros((grid.shape[0], grid.shape[1]), dtype=np.int64)
     G = np.zeros((grid.shape[0], grid.shape[1]), dtype=np.int64)
 
-    inf = np.iinfo(np.int64).max
     F[:, :] = inf
     G[:, :] = inf
 
     G[v1[0], v1[1]] = 0
-    F[v1[0], v1[1]] = funcH(grid, v1)
+    F[v1[0], v1[1]] = heuristic_func(grid, v1)
 
+    visited = 0
     while open_set:
+        current = heapq.heappop(open_set).node
+        visited += 1
 
-        current = open_set[-1]
-        min_f = F[current[0], current[1]]
-        for c in open_set:
-            f = F[c[0], c[1]]
-            if f < min_f:
-                current = c
-                min_f = f
-        open_set.remove(current)
-
-        print("a* ", current)
+        print("visiting ", current[0], current[1])
         if current[0] == idim - 1 and current[1] == jdim - 1:
             break
 
@@ -110,13 +72,19 @@ def astar(grid, v1):
             g_temp = G[current[0], current[1]] + grid[v[0], v[1]]
             if g_temp < G[v[0], v[1]]:
                 prev[v[0], v[1], :] = current
+                f = g_temp + heuristic_func(grid, v)
                 G[v[0], v[1]] = g_temp
-                F[v[0], v[1]] = g_temp + funcH(grid, v)
+                F[v[0], v[1]] = f
                 if v not in open_set:
-                    open_set.append(v)
+                    heapq.heappush(open_set, PrioritizedItem(v, f))
 
     print("cost")
     print(G[idim - 1, jdim - 1])
+    print("nodes visited ", visited)
+    np.save(open("grid.npy", "wb"), grid)
+    np.save(open("G.npy", "wb"), G)
+    np.save(open("prev.npy", "wb"), prev)
+
 
 def multiply_grid(grid):
     idim, jdim = grid.shape
