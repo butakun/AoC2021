@@ -212,6 +212,8 @@ def find_transform_path(iscanner, mapping):
             return True
         else:
             for j in mapping[i].keys():
+                if j in path:
+                    continue
                 if dfs(j, path, mapping):
                     return True
             path.pop()
@@ -276,9 +278,13 @@ def main(filename):
                     mapping[iscanner1] = {iscanner2: [match_inv, rot_inv, d_inv]}
 
     pickle.dump(mapping, open("mapping.pkl", "wb"))
-    #mapping = pickle.load(open("mapping_debug.pkl", "rb"))
+
+    #mapping = pickle.load(open("mapping.1.pkl", "rb"))
     print("mapping ")
-    print(mapping)
+    for k, v in mapping.items():
+        print(f"{k}: ")
+        for k2, v2 in v.items():
+            print(f"  {k2}: {v2[1]}, {v2[2]}")
 
     paths = {}
     uniques = set()
