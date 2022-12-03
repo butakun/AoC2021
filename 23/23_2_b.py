@@ -1,32 +1,39 @@
 """
 #############
 #...........#
-###D#D#B#A###
-  #B#C#A#C#
+###B#C#B#D###
+  #D#C#B#A#
+  #D#B#A#C#
+  #A#D#C#A#
   #########
 
 Positions
 0 1    2    3    4    5 6
-    7     9   11   13
-    8    10   12   14
+    7    11   15   19
+    8    12   16   20
+    9    13   17   21 
+   10    14   18   22
+   
 State
 Empty = 0
 A = 1, B = 2, C = 3, D = 4 
- 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
-[0 0 0 0 0 0 0 4 2 4  3  2  1  1  3]
+ 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22
+[0 0 0 0 0 0 0 2 4 4  1  3  3  2  4  2  2  1  3  4  1  3  1]
 """
 
-ASCII_GRAPH = """
-01*2*3*4*56
-..7.9.b.d..
-..8.a.c.e..
-""".strip("\n")
+ASCII_GRAPH = [
+        "01A2B3C4D56",
+        "..7.b.f.j..",
+        "..8.c.g.k..",
+        "..9.d.h.l..",
+        "..a.e.i.m..",
+        ]
 
 from collections import defaultdict
 from dijkstra import dijkstra, a_star
 
 def build_graph(ascii_graph):
-    lines = ascii_graph.split("\n")
+    lines = ascii_graph
     jdim = len(lines[0])
     idim = len(lines)
     print(f"graph = {idim} x {jdim}")
@@ -34,24 +41,21 @@ def build_graph(ascii_graph):
     def convert(c):
         if c in "0123456789":
             return int(c)
-        elif c in "abcdef":
+        elif c in "abcdefghijklm":
             v = 10 + (ord(c) - ord("a"))
-            assert v < 16
+            assert v <= 22
             return v
-        elif c == "*":
-            return -1
+        elif c in "ABCD":
+            v = -(ord(c) - ord("A") + 1)
+            return v
 
     grid = [[None for i in range(jdim)] for i in range(idim)]
-    negative = -1
     for i in range(idim):
         for j in range(jdim):
             char = lines[i][j]
             if char == ".":
                 continue
             node = convert(char)
-            if node < 0:
-                node = negative
-                negative -= 1
             grid[i][j] = node
 
     graph = {}
@@ -82,9 +86,10 @@ def build_graph(ascii_graph):
 
 
 def build_paths(graph):
+    node_ids = [k for k in graph.keys()]
     paths = defaultdict(dict)
-    for src in range(15):
-        for dest in range(15):
+    for src in node_ids:
+        for dest in node_ids:
             if src == dest:
                 continue
             path, dist = dijkstra(graph, src, dest)
@@ -101,23 +106,16 @@ def path_passable(current, path):
 
 def next_states_for(G, paths, current, my_pos):
     me = current[my_pos]
-    my_rooms = [6 + 2 * me, 6 + 2 * me - 1]
+    my_rooms = [6 + 4 * me, 6 + 4 * me - 1, 6 + 4 * me - 2, 6 + 4 * me - 3]
 
     next_states = []
-    for dest in range(15):
+    for dest in range(23):
         if current[dest] != 0:
             # destination is occupied
             continue
         if my_pos <= 6:
             # i'm in the hallway
             if dest not in my_rooms: 
-                continue
-            someone_else_in_my_room = False
-            for i in my_rooms:
-                if current[i] != 0 and current[i] != me:
-                    someone_else_in_my_room = True
-                    break
-            if someone_else_in_my_room:
                 continue
         else:
             # i'm in a side room
@@ -156,7 +154,7 @@ def next_states_for(G, paths, current, my_pos):
 
 def next_states_all(G, paths, current):
     next_states = []
-    for pos in range(15):
+    for pos in range(23):
         if current[pos] != 0:
             next_states.extend(next_states_for(G, paths, current, pos))
     return next_states
@@ -168,7 +166,7 @@ def distance_heuristic(src, dest, paths):
         energy_per_step = pow(10, me - 1)
         i0 = 0
         j0 = 0
-        for i in range(2):
+        for i in range(4):
             i1 = src[i0:].index(me) + i0
             i0 = i1 + 1
             j1 = dest[j0:].index(me) + j0
@@ -181,38 +179,25 @@ def distance_heuristic(src, dest, paths):
     return h
 
 
-def distance_heuristic_0(src, dest, paths):
-    h = 0
-    for me in [4, 3, 2, 1]:
-        src1 = src.index(me)
-        src2 = src[src1+1:].index(me) + src1 + 1
-        dst1 = dest.index(me)
-        dst2 = dest[dst1+1:].index(me) + dst1 + 1
-
-        if src1 == dst1:
-            path_1_1 = 0
-        else:
-            path_1_1 = len(paths[src1][dst1]) - 1
-        if src1 == dst2:
-            path_1_2 = 0
-        else:
-            path_1_2 = len(paths[src1][dst2]) - 1
-        if path_1_1 <= path_1_2:
-            path_1 = path_1_1
-            if src2 == dst2:
-                path_2 = 0
-            else:
-                path_2 = len(paths[src2][dst2]) - 1
-        else:
-            path_1 = path_1_2
-            if src2 == dst1:
-                path_2 = 0
-            else:
-                path_2 = len(paths[src2][dst1]) - 1
-        energy_per_step = pow(10, me - 1)
-        h += energy_per_step * path_1
-        h += energy_per_step * path_2
-    return h
+def energy_delta(state1, state2, paths):
+    for i1, c1 in enumerate(state1):
+        if c1 == 0:
+            continue
+        if state2[i1] != 0:
+            continue
+        src = i1
+        me = c1
+        break
+    for i2, c2 in enumerate(state2):
+        if c2 == 0:
+            continue
+        if state1[i2] != 0:
+            continue
+        dst = i2
+        break
+    energy_per_step = pow(10, me - 1)
+    steps = len(paths[src][dst]) - 1
+    return energy_per_step * steps
 
 
 def state_to_str(state, grid):
@@ -251,27 +236,26 @@ def state_to_str(state, grid):
     flattened = "\n".join(["".join(line) for line in buf])
     return flattened
 
-def ascii_to_state(ascii):
+def ascii_to_state(ascii, grid):
     """
+    ascii =
     ...........
-    ##D#D#B#A##
-    ##B#C#A#C##
+    ##b#c#b#d##
+    ##d#c#b#a##
+    ##d#b#a#c##
+    ##a#d#c#a##
     """
-    coord_to_index = [
-    [  0,  1, -1,  2, -1,  3,  -1,  4, -1,  5,  6 ], 
-    [ -1, -1,  7, -1,  9, -1,  11, -1, 13, -1, -1 ], 
-    [9 -1, -1,  8, -1, 10, -1,  12, -1, 14, -1, -1 ], 
-    ]
     lines = [ line.strip() for line in ascii.split("\n") ]
     idim = len(lines)
     jdim = len(lines[0])
-    state_dim = max([ max(l) for l in coord_to_index ]) + 1
+    assert idim == len(grid) and jdim == len(grid[0])
+    state_dim = max([ max([v for v in l if v is not None]) for l in grid ]) + 1
 
     state = [ 0 ] * state_dim
     for i in range(idim):
         for j in range(jdim):
-            index = coord_to_index[i][j]
-            if index < 0:
+            index = grid[i][j]
+            if index is None or index < 0:
                 continue
             char = lines[i][j]
             if char not in "ABCD":
@@ -324,31 +308,53 @@ def main():
     G, grid = build_graph(ASCII_GRAPH)
     paths = build_paths(G)
 
-    src = 9
+    src = 10 
     for dest, path in paths[src].items():
         print(f"{src}->{dest}: {path}")
 
     initial_ascii = """
     ...........
+    ##B#C#B#D##
+    ##D#C#B#A##
+    ##D#B#A#C##
+    ##A#D#C#A##
+    """.strip()
+
+    initial_ascii = """
+    ...........
     ##D#C#D#B##
+    ##D#C#B#A##
+    ##D#B#A#C##
     ##C#A#A#B##
     """.strip()
-    initial_state = ascii_to_state(initial_ascii)
+
+    initial_state = ascii_to_state(initial_ascii, grid)
     print(state_to_str(initial_state, grid))
 
     goal_ascii = """
-    ..........A
-    ##D#D#B#.##
-    ##B#C#A#C##
+    B..........
+    ##.#C#B#D##
+    ##D#C#B#A##
+    ##D#B#A#C##
+    ##A#D#C#A##
     """.strip()
 
     goal_ascii = """
     ...........
     ##A#B#C#D##
     ##A#B#C#D##
+    ##A#B#C#D##
+    ##A#B#C#D##
     """.strip()
-    goal_state = ascii_to_state(goal_ascii)
+
+    goal_state = ascii_to_state(goal_ascii, grid)
     print(goal_state)
+    print(state_to_str(goal_state, grid))
+
+    if False:
+        initial_state = [int(c) for c in "12002320003332100114444"]
+        print("FROM")
+        print(state_to_str(initial_state, grid))
 
     SG = StateGraph(G, paths)
     initial_node = StateNode(initial_state)
@@ -366,9 +372,17 @@ def main():
     elif method == "astar":
         solution, energy = a_star(SG, initial_node, goal_node, H, debug_freq=1000)
 
+    energy = 0
     for i, node in enumerate(solution):
         print(f"{i}: {node}")
         print(state_to_str(node.state, grid))
+        if i > 0:
+            state1 = solution[i - 1]
+            state2 = node
+            delta = energy_delta(state1.state, state2.state, paths)
+            energy += delta
+            print(f"Energy delta {delta}, total {energy}")
+
     print(f"found the shortest path to {dest} for energy {energy}")
 
 
