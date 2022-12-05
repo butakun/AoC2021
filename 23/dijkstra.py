@@ -78,8 +78,49 @@ def dijkstra(G, src, dest, debug_freq=-1):
     return path, D[dest]
 
 
-def a_star(G, src, dest):
+def a_star(G, src, dest, H, debug_freq=-1):
     pq = PriorityQueue()
+    came_from = {src: None}
+
+    gScore = defaultdict(lambda:math.inf)
+    fScore = defaultdict(lambda:math.inf)
+    
+    gScore[src] = 0
+    fScore[src] = H(src)
+
+    pq.push(src, priority=fScore[src])
+    iter = 0
+    while pq:
+        u = pq.pop()
+        iter += 1
+        if u == dest:
+            break
+
+        if debug_freq > 0 and iter % debug_freq == 0:
+            print(f"iter {iter}: gScore[u] = {gScore[u]}, fScore[u] = {fScore[u]}")
+
+        for v in G[u]:
+            try:
+                v, weight = v[0], v[1]
+            except:
+                weight = 1
+            g_temp = gScore[u] + weight
+            if g_temp < gScore[v]:
+                f_temp = g_temp + H(v)
+                gScore[v] = g_temp
+                fScore[v] = f_temp
+                came_from[v] = u
+                pq.push(v, priority=f_temp)
+
+    path = [dest]
+    while True:
+        prev = came_from[path[-1]]
+        if prev is None:
+            break
+        path.append(prev)
+
+    path.reverse()
+    return path, gScore[dest]
 
 
 def test():
