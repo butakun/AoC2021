@@ -21,7 +21,7 @@ def match_1d(values1, values2):
     return matched.sum() >= 12
 
 
-def align_1d(coords1, coords2):
+def align_1d(coords1, coords2, first_align=False):
     sorted1 = np.sort(coords1)
     sorted2 = np.sort(coords2)
 
@@ -42,20 +42,21 @@ def align_1d(coords1, coords2):
                 matched = match_1d(overlapped1, overlapped2)
                 if matched:
                     shifts.append(i2)
+                if first_align:
+                    return shifts
         else:
             continue
     return shifts
 
 
 def compare_scanners(beacons1, beacons2):
-
     rot = {}
     shift = {}
     for axis1 in [1, 2, 3]:
         coords1 = get_coords_on_axis(beacons1, axis1)
         for axis2 in [1, 2, 3, -1, -2, -3]:
             coords2 = get_coords_on_axis(beacons2, axis2)
-            shifts_ = align_1d(coords1, coords2)
+            shifts_ = align_1d(coords1, coords2, first_align=True)
             if shifts_:
                 assert len(shifts_) == 1
                 print(f"Axis {axis1} <-> Axis {axis2}")
@@ -63,6 +64,7 @@ def compare_scanners(beacons1, beacons2):
                 rot[axis1] = axis2
                 shift[axis1] = shifts_[0]
                 break
+
     if len(rot) < 3:
         return {}, {}
 
@@ -157,19 +159,23 @@ def main(filename):
     scanners = read_scanners(filename)
     n_scanners = len(scanners)
 
-    mapping = {}
-    for i in range(n_scanners):
-        for j in range(i+1, n_scanners):
-            print(f"comparing scanners {i} and {j}")
-            rot, shift = compare_scanners(scanners[i], scanners[j])
-            if len(rot) > 0:
-                print(f"  rot: {rot}, shift: {shift}")
-                if i in mapping:
-                    mapping[i][j] = {"rot": rot, "shift": shift}
-                else:
-                    mapping[i] = {j: {"rot": rot, "shift": shift}}
+    if False:
+        mapping = {}
+        for i in range(n_scanners):
+            for j in range(i+1, n_scanners):
+                print(f"comparing scanners {i} and {j}")
+                rot, shift = compare_scanners(scanners[i], scanners[j])
+                if len(rot) > 0:
+                    print(f"  rot: {rot}, shift: {shift}")
+                    if i in mapping:
+                        mapping[i][j] = {"rot": rot, "shift": shift}
+                    else:
+                        mapping[i] = {j: {"rot": rot, "shift": shift}}
 
-    pickle.dump(mapping, open("mapping_b.pkl", "wb"))
+        pickle.dump(mapping, open("mapping_b.pkl", "wb"))
+    else:
+        mapping = pickle.load(open("mapping_b.pkl", "rb"))
+
 
 
 if __name__ == "__main__":
